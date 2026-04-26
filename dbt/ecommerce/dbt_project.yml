@@ -1,0 +1,29 @@
+# Nom du projet
+name: ecommerce
+version: '1.0'
+
+# Configuration de la connexion à la base de données
+profile: ecommerce
+
+# These configurations specify where dbt should look for different types of files.
+model-paths: ["models"]
+test-paths: ["tests"]
+analysis-paths: ["analyses"]
+
+# directories to be removed by `dbt clean`
+clean-targets:
+  - "target"
+  - "dbt_packages"
+
+# Configuring templates
+models:
+  ecommerce:
+    # Specific configuration for templates in the "ecommerce" folder
+    staging:
+      +schema: staging
+      +materialized: view
+    intermediate:
+      +schema: intermediate
+      +materialized: view
+    marts:
+      +materialized: table

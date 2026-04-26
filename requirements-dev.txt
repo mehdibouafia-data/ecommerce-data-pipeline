@@ -1,0 +1,7 @@
+pytest
+pytest-mock
+requests-mock
+google-cloud-bigquery
+psycopg2-binary
+dbt-core
+dbt-duckdb

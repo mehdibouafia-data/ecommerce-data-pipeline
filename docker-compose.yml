@@ -1,0 +1,144 @@
+volumes:
+  pgdata:
+
+services:
+
+  # ─────────────────────────────────────────
+  # POSTGRES
+  # - Postgres database: system superuser
+  # - Airflow database: Airflow metadata
+  # - Ecommerce database: business data (raw + staging)
+  # init-db.sh executed only once on first startup
+  # ─────────────────────────────────────────
+  postgres:
+    image: postgres:15
+    container_name: postgres
+    env_file:
+      - .env
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./docker/init-db.sh:/docker-entrypoint-initdb.d/init-db.sh
+    restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER}"]
+      interval: 5s
+      retries: 5
+      start_period: 5s
+
+  # ─────────────────────────────────────────
+  # AIRFLOW INIT (one-shot)
+  # ─────────────────────────────────────────
+  airflow-init:
+    image: apache/airflow:2.11.2
+    container_name: airflow_init
+    depends_on:
+      postgres:
+        condition: service_healthy
+    env_file:
+      - .env
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
+      - ./airflow/logs:/opt/airflow/logs
+      - ./airflow/plugins:/opt/airflow/plugins
+      - ./docker:/scripts
+    entrypoint: bash
+    command: /scripts/airflow-init.sh
+    restart: "no"
+
+  # ─────────────────────────────────────────
+  # AIRFLOW WEBSERVER
+  # ─────────────────────────────────────────
+  airflow-webserver:
+    image: apache/airflow:2.11.2
+    container_name: airflow_webserver
+    depends_on:
+      postgres:
+        condition: service_healthy
+      airflow-init:
+        condition: service_completed_successfully
+    env_file:
+      - .env
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
+      - ./airflow/logs:/opt/airflow/logs
+      - ./airflow/plugins:/opt/airflow/plugins
+    ports:
+      - "8080:8080"
+    command: webserver
+    restart: always
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
+      interval: 10s
+      retries: 5
+      start_period: 10s
+
+  # ─────────────────────────────────────────
+  # AIRFLOW SCHEDULER
+  # custom image → docker CLI + docker group GID 1001
+  # socket mounted for DockerOperator
+  # ─────────────────────────────────────────
+  airflow-scheduler:
+    build:
+      context: ./airflow
+      dockerfile: Dockerfile
+    image: ecommerce_airflow_scheduler:latest
+    container_name: airflow_scheduler
+    depends_on:
+      postgres:
+        condition: service_healthy
+      airflow-init:
+        condition: service_completed_successfully
+    env_file:
+      - .env
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
+      - ./airflow/logs:/opt/airflow/logs
+      - ./airflow/plugins:/opt/airflow/plugins
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: scheduler
+    restart: always
+
+  # ─────────────────────────────────────────
+  # INGESTION (ephemeral — launched by DockerOperator)
+  # ─────────────────────────────────────────
+  ingestion:
+    build:
+      context: ./src/ingestion
+      dockerfile: Dockerfile
+    image: ecommerce_ingestion:latest
+    env_file:
+      - .env
+    profiles:
+      - tools
+
+  # ─────────────────────────────────────────
+  # DBT (ephemeral — launched by DockerOperator)
+  # bind mount → models, logs, target, docs
+  # all persisted in ./src/dbt/ecommerce on the host
+  # ─────────────────────────────────────────
+  dbt:
+    build:
+      context: ./dbt
+      dockerfile: Dockerfile
+      args:
+        HOST_UID: ${HOST_UID}
+    image: ecommerce_dbt:latest
+    env_file:
+      - .env
+    profiles:
+      - tools
+
+  # ─────────────────────────────────────────
+  # LOAD (ephemeral — launched by DockerOperator)
+  # transfer intermediate PostgreSQL → BigQuery
+  # gcloud mount managed by the DAG via DockerOperator
+  # ─────────────────────────────────────────
+  load:
+    build:
+      context: ./src/load
+      dockerfile: Dockerfile
+    image: ecommerce_load:latest
+    env_file:
+      - .env
+    profiles:
+      - tools

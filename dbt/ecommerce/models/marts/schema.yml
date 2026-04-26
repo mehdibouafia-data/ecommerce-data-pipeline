@@ -1,0 +1,92 @@
+version: 2
+
+models:
+  - name: mart_sales
+    description: >
+      Enhanced sales fact table.
+      Granularity: 1 line per order item.
+      Includes category ranking, revenue quartile, and percentage contribution to cart.
+    config:
+      partition_by:
+        field: ingested_at
+        data_type: timestamp
+        granularity: day
+      cluster_by:
+        - category
+        - cart_id
+    columns:
+      - name: cart_id
+        tests: [not_null]
+      - name: product_id
+        tests: [not_null]
+      - name: user_id
+        tests: [not_null]
+      - name: quantity
+        tests: [not_null]
+      - name: unit_price
+        tests: [not_null]
+      - name: item_total
+        tests: [not_null]
+      - name: pct_of_cart
+        tests: [not_null]
+      - name: revenue_quartile
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [1, 2, 3, 4]
+                quote: false # Numerical values, not quotes
+      - name: rank_in_category
+        tests: [not_null]
+
+  - name: mart_customers
+    description: >
+      Enhanced customer dimension table with segmentation.
+      Granularity: 1 line per customer.
+      Includes high/mid/low_value segmentation and rankings.
+    config:
+      cluster_by:
+        - country
+        - customer_segment
+    columns:
+      - name: user_id
+        tests: [not_null, unique]
+      - name: email
+        tests: [not_null, unique]
+      - name: total_orders
+        tests: [not_null]
+      - name: total_spent
+        tests: [not_null]
+      - name: customer_segment
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['high_value', 'mid_value', 'low_value']
+      - name: customer_rank
+        tests: [not_null]
+
+  - name: mart_products
+    description: >
+      Enhanced product dimension table with performance score.
+      Granularity: 1 line per product.
+      Includes performance_score, rankings, and low stock alert.
+    config:
+      cluster_by:
+        - category
+        - low_stock_alert
+    columns:
+      - name: product_id
+        tests: [not_null, unique]
+      - name: product_name
+        tests: [not_null]
+      - name: total_revenue
+        tests: [not_null]
+      - name: total_units_sold
+        tests: [not_null]
+      - name: performance_score
+        tests: [not_null]
+      - name: revenue_rank
+        tests: [not_null]
+      - name: low_stock_alert
+        tests: [not_null]

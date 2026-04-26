@@ -1,0 +1,42 @@
+version: 2
+
+sources:
+  - name: raw
+    schema: raw
+    description: "Raw data ingested from the DummyJSON API"
+    tables:
+      - name: users
+        description: "Raw Users"
+        columns:
+          - name: id
+            tests: [not_null, unique]
+          - name: email
+            tests: [not_null, unique]
+
+      - name: products
+        description: "Raw Products"
+        columns:
+          - name: id
+            tests: [not_null, unique]
+          - name: price
+            tests: [not_null]
+          - name: category
+            tests: [not_null]
+
+      - name: carts
+        description: "Raw Carts"
+        columns:
+          - name: id
+            tests: [not_null, unique]
+          - name: user_id
+            tests: [not_null]
+
+      - name: cart_items
+        description: "Raw Cart Items"
+        columns:
+          - name: cart_id
+            tests: [not_null]
+          - name: product_id
+            tests: [not_null]
+          - name: quantity
+            tests: [not_null]

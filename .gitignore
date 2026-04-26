@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# dbt
+dbt/ecommerce/target/
+dbt/ecommerce/dbt_packages/
+dbt/ecommerce/logs/
+dbt/ecommerce/.user.*
+
+# Airflow
+airflow/plugins/
+airflow/logs/
+
+# env
+.env
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Google Cloud Platform
+gcp/
+
+# Docker
+*.log
+
+# Cache
+.ruff_cache/
+.pytest_cache/
+__pycache__/
+*.pyc

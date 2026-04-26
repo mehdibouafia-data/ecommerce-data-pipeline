@@ -1,0 +1,46 @@
+version: 2
+
+models:
+  - name: stg_users
+    description: "Users cleaned and typed from raw.users"
+    columns:
+      - name: user_id
+        tests: [not_null, unique]
+      - name: email
+        tests: [not_null, unique]
+      - name: first_name
+        tests: [not_null]
+      - name: last_name
+        tests: [not_null]
+
+  - name: stg_products
+    description: "Products cleaned and typed from raw.products"
+    columns:
+      - name: product_id
+        tests: [not_null, unique]
+      - name: product_name
+        tests: [not_null]
+      - name: price
+        tests: [not_null]
+      - name: category
+        tests: [not_null]
+
+  - name: stg_carts
+    description: "Carts cleaned and typed from raw.carts"
+    columns:
+      - name: cart_id
+        tests: [not_null, unique]
+      - name: user_id
+        tests: [not_null]
+
+  - name: stg_cart_items
+    description: "Cart items cleaned and typed from raw.cart_items"
+    columns:
+      - name: cart_id
+        tests: [not_null]
+      - name: product_id
+        tests: [not_null]
+      - name: product_name
+        tests: [not_null]
+      - name: quantity
+        tests: [not_null]
